@@ -238,6 +238,8 @@ Use these when you want rules to trigger only if study data falls inside or outs
 
 Some expressions return numbers and dates that can e.g. be used for comparisons. Note that Dates are always represented in **Unix timestamp format**, which means they are also integer numbers.
 
+Since a Unix timestamp itself has no timezone, any expression that derives calendar-based information from it (e.g., the start of a day, week, or month) does so using the **local timezone of the server process** running the study engine, not the participant's timezone.
+
 ### Variables
 
 #### 1. **Date picker**
