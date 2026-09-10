@@ -287,17 +287,18 @@ components:
         key:
           type: string
         value:
-          oneOf:
+          description: >-
+            Values are normalized according to type. Numeric and boolean types also
+            accept parseable strings. Dates accept RFC3339 strings or Unix timestamps
+            in seconds or milliseconds and are returned as date-time strings.
+            Missing or null values are accepted.
+          anyOf:
           - type: string
           - type: integer
           - type: number
           - type: boolean
           - type: string
             format: date-time
-          - type: object
-            additionalProperties: true
-          - type: array
-            items: {}
           - type: 'null'
         type:
           type: string
@@ -337,9 +338,11 @@ components:
         action:
           type: string
         limiter:
-          type: object
-          additionalProperties:
-            type: string
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              type: string
       additionalProperties: false
       description: Permission object
     AppRoleTemplate:
@@ -782,6 +785,30 @@ components:
       additionalProperties: false
       description: Management User object
 paths:
+  "/":
+    get:
+      operationId: healthCheck
+      summary: Check management API health
+      description: Returns service status and available service metadata.
+      security: []
+      responses:
+        '200':
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    const: ok
+                  serviceInfos:
+                    type: object
+                    additionalProperties: true
+                required:
+                - status
+                - serviceInfos
+                additionalProperties: false
   "/v1/auth/signin-with-idp":
     post:
       tags:
@@ -1032,18 +1059,20 @@ paths:
           maximum: 100
       - name: filter
         in: query
-        description: bson.M object to filter responses
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       - name: sort
         in: query
-        description: bson.M object to sort responses
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       responses:
         '200':
           description: List participant responses
@@ -1147,8 +1176,7 @@ paths:
                   type: string
                 payload:
                   type: object
-                  additionalProperties:
-                    type: string
+                  additionalProperties: true
               required:
               - eventKey
       responses:
@@ -1303,13 +1331,14 @@ paths:
               type: object
               properties:
                 data:
-                  "$ref": "#/components/schemas/ReportData"
+                  type: array
+                  items:
+                    "$ref": "#/components/schemas/ReportData"
                 mode:
-                  type: object
-                  additionalProperties: true
-              required:
-              - data
-              - mode
+                  type: string
+                  enum: [append, replace, ""]
+                  default: append
+                  description: Omitted or empty mode defaults to append.
       responses:
         '200':
           description: Update participant report
@@ -2373,12 +2402,8 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                survey:
-                  "$ref": "#/components/schemas/Survey"
-              required:
-              - survey
+              "$ref": "#/components/schemas/Survey"
+              description: The surveyDefinition.key must match surveyKey in the path.
       responses:
         '200':
           description: Updated survey
@@ -3640,8 +3665,20 @@ paths:
                 properties:
                   result:
                     type: object
-                    additionalProperties:
-                      type: object
+                    properties:
+                      ParticipantCount:
+                        type: integer
+                      ParticipantStateChangedPerRule:
+                        type: array
+                        items:
+                          type: integer
+                      Duration:
+                        type: integer
+                    required:
+                    - ParticipantCount
+                    - ParticipantStateChangedPerRule
+                    - Duration
+                    additionalProperties: false
                 required:
                 - result
         '400':
@@ -3839,8 +3876,20 @@ paths:
                 properties:
                   result:
                     type: object
-                    additionalProperties:
-                      type: object
+                    properties:
+                      ParticipantCount:
+                        type: integer
+                      ParticipantStateChangedPerRule:
+                        type: array
+                        items:
+                          type: integer
+                      Duration:
+                        type: integer
+                    required:
+                    - ParticipantCount
+                    - ParticipantStateChangedPerRule
+                    - Duration
+                    additionalProperties: false
                 required:
                 - result
         '400':
@@ -3914,11 +3963,12 @@ paths:
           type: string
       - name: filter
         in: query
-        description: bson.M object to filter files
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       responses:
         '200':
           description: Count
@@ -3958,32 +4008,34 @@ paths:
           type: string
       - name: page
         in: query
-        description: page number (starting from 1)
+        description: Parsed and validated but ignored; all matching responses are exported.
         schema:
           type: integer
           minimum: 1
           default: 1
       - name: limit
         in: query
-        description: maximum number of responses per page
+        description: Parsed and validated but ignored; does not limit the export.
         schema:
           type: integer
           minimum: 1
           default: 10
       - name: filter
         in: query
-        description: bson.M object to filter responses
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       - name: sort
         in: query
-        description: bson.M object to sort responses
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       - name: shortKeys
         in: query
         description: return short keys for responses
@@ -4053,12 +4105,13 @@ paths:
           description: Task status
           content:
             application/json:
-              type: object
-              properties:
-                task:
-                  "$ref": "#/components/schemas/Task"
-              required:
-              - task
+              schema:
+                type: object
+                properties:
+                  task:
+                    "$ref": "#/components/schemas/Task"
+                required:
+                - task
         '400':
           "$ref": "#/components/responses/Error400"
         '401':
@@ -4159,6 +4212,7 @@ paths:
         schema:
           type: string
       - name: exportID
+        description: URL-safe Base64 encoding (with padding) of a filename returned by the list endpoint.
         in: path
         required: true
         schema:
@@ -4180,6 +4234,8 @@ paths:
               schema:
                 type: string
                 format: binary
+        '400':
+          "$ref": "#/components/responses/Error400"
         '401':
           "$ref": "#/components/responses/Error401"
         '403':
@@ -4204,11 +4260,12 @@ paths:
           type: string
       - name: filter
         in: query
-        description: bson.M object to filter participants
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       responses:
         '200':
           description: Count
@@ -4244,18 +4301,20 @@ paths:
           type: string
       - name: filter
         in: query
-        description: bson.M object to filter participants
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       - name: sort
         in: query
-        description: bson.M object to sort participants
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       responses:
         '200':
           description: Export started
@@ -4546,6 +4605,8 @@ paths:
           "$ref": "#/components/responses/Error401"
         '403':
           "$ref": "#/components/responses/Error403"
+        '404':
+          "$ref": "#/components/responses/Error404"
         '500':
           "$ref": "#/components/responses/Error500"
   "/v1/studies/{studyKey}/data-exporter/confidential-responses/":
@@ -4648,6 +4709,7 @@ paths:
         schema:
           type: string
       - name: exportID
+        description: URL-safe Base64 encoding (with padding) of a filename returned by the list endpoint.
         in: path
         required: true
         schema:
@@ -4712,7 +4774,7 @@ paths:
           default: "-"
       - name: format
         in: query
-        description: format for survey responses
+        description: Parsed but ignored; responses are always returned as flattened JSON.
         required: false
         schema:
           type: string
@@ -4737,18 +4799,20 @@ paths:
           default: 10
       - name: filter
         in: query
-        description: bson.M object to filter responses
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       - name: sort
         in: query
-        description: bson.M object to sort responses
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       - name: extraContextColumns
         in: query
         description: comma-separated list of extra context columns to include in the
@@ -4768,8 +4832,7 @@ paths:
                     items:
                       type: object
                       description: Responses
-                      additionalProperties:
-                        type: object
+                      additionalProperties: true
                   pagination:
                     "$ref": "#/components/schemas/PaginationInfos"
                 required:
@@ -4806,11 +4869,12 @@ paths:
           type: string
       - name: filter
         in: query
-        description: bson.M object to filter responses to delete
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       responses:
         '200':
           description: Deleted summary
@@ -4824,7 +4888,7 @@ paths:
           "$ref": "#/components/responses/Error401"
         '500':
           "$ref": "#/components/responses/Error500"
-  "/v1/studies/{studyKey}/data-explorer/responses/{responseId}":
+  "/v1/studies/{studyKey}/data-explorer/responses/{responseID}":
     get:
       tags:
       - responses
@@ -4838,7 +4902,7 @@ paths:
         required: true
         schema:
           type: string
-      - name: responseId
+      - name: responseID
         in: path
         required: true
         schema:
@@ -4868,8 +4932,7 @@ paths:
                   response:
                     type: object
                     description: Response
-                    additionalProperties:
-                      type: object
+                    additionalProperties: true
                 required:
                 - response
                 additionalProperties: false
@@ -4892,7 +4955,7 @@ paths:
         required: true
         schema:
           type: string
-      - name: responseId
+      - name: responseID
         in: path
         required: true
         schema:
@@ -4940,18 +5003,20 @@ paths:
           default: 10
       - name: filter
         in: query
-        description: bson.M object to filter participants
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       - name: sort
         in: query
-        description: bson.M object to sort participants
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       responses:
         '200':
           description: Participants
@@ -5114,11 +5179,12 @@ paths:
           default: 10
       - name: filter
         in: query
-        description: bson.M object to filter files
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       responses:
         '200':
           description: Reports
@@ -5210,11 +5276,12 @@ paths:
           default: 10
       - name: filter
         in: query
-        description: bson.M object to filter files
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: URL-encoded JSON object supplied as a single query parameter value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       responses:
         '200':
           description: Files
@@ -5223,14 +5290,14 @@ paths:
               schema:
                 type: object
                 properties:
-                  files:
+                  fileInfos:
                     type: array
                     items:
                       "$ref": "#/components/schemas/FileInfo"
                   pagination:
                     "$ref": "#/components/schemas/PaginationInfos"
                 required:
-                - files
+                - fileInfos
                 - pagination
                 additionalProperties: false
         '400':
@@ -6059,10 +6126,10 @@ paths:
               schema:
                 type: object
                 properties:
-                  serviceAccount:
-                    "$ref": "#/components/schemas/ServiceUser"
+                  success:
+                    type: boolean
                 required:
-                - serviceAccount
+                - success
         '400':
           "$ref": "#/components/responses/Error400"
         '401':
