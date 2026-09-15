@@ -6,6 +6,8 @@ info:
   description: Endpoints for management authentication, user management, study administration,
     messaging, and participant administration.
 tags:
+- name: health
+  description: Service health
 - name: auth
   description: Authentication & Session
 - name: studies
@@ -232,8 +234,7 @@ components:
         rules:
           type: array
           items:
-            type: object
-            additionalProperties: true
+            "$ref": "#/components/schemas/Expression"
       additionalProperties: false
       description: Study object
     Survey:
@@ -245,19 +246,15 @@ components:
         surveyKey:
           type: string
         props:
-          type: object
-          additionalProperties: true
+          "$ref": "#/components/schemas/SurveyProps"
         prefillRules:
           type: array
           items:
-            type: object
-            additionalProperties: true
+            "$ref": "#/components/schemas/Expression"
         contextRules:
-          type: object
-          additionalProperties: true
+          "$ref": "#/components/schemas/SurveyContextDef"
         maxItemsPerPage:
-          type: object
-          additionalProperties: true
+          "$ref": "#/components/schemas/MaxItemsPerPage"
         availableFor:
           type: string
         requireLoginBeforeSubmission:
@@ -267,8 +264,7 @@ components:
         unpublished:
           type: integer
         surveyDefinition:
-          type: object
-          additionalProperties: true
+          "$ref": "#/components/schemas/SurveyItem"
         versionId:
           type: string
         metadata:
@@ -425,8 +421,7 @@ components:
         rules:
           type: array
           items:
-            type: object
-            additionalProperties: true
+            "$ref": "#/components/schemas/Expression"
         serialisedRules:
           type: string
       additionalProperties: false
@@ -499,32 +494,30 @@ components:
         defaultLanguage:
           type: string
         headerOverrides:
-          type: object
-          additionalProperties: true
+          "$ref": "#/components/schemas/HeaderOverrides"
         translations:
           type: array
           items:
-            type: object
-            additionalProperties: true
+            "$ref": "#/components/schemas/LocalizedTemplate"
       additionalProperties: false
       description: Email Template object
     SmsTemplate:
-      type: object
+      type: "object"
       properties:
         id:
-          type: string
-          description: ObjectID
-        userID:
-          type: string
+          type: "string"
         messageType:
-          type: string
-        sentAt:
-          type: string
-          format: date-time
-        phoneNumber:
-          type: string
+          type: "string"
+        defaultLanguage:
+          type: "string"
+        from:
+          type: "string"
+        translations:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/LocalizedTemplate"
       additionalProperties: false
-      description: SMS Template object
+      description: "SMS Template object"
     ScheduledEmail:
       type: object
       properties:
@@ -538,8 +531,7 @@ components:
         studyKey:
           type: string
         condition:
-          type: object
-          additionalProperties: true
+          "$ref": "#/components/schemas/ExpressionArg"
         nextTime:
           type: integer
         period:
@@ -712,6 +704,12 @@ components:
           items:
             type: object
             additionalProperties: true
+        hashedAccountID:
+          type: string
+          description: Optional hashed account identifier used for account tracking.
+        isMainProfile:
+          type: boolean
+          description: Optional indicator of whether this participant represents the main profile.
       required:
       - participantId
       additionalProperties: false
@@ -757,8 +755,7 @@ components:
         responses:
           type: array
           items:
-            type: object
-            additionalProperties: true
+            "$ref": "#/components/schemas/SurveyItemResponse"
         context:
           type: object
           additionalProperties:
@@ -794,10 +791,288 @@ components:
           format: date-time
       additionalProperties: false
       description: Management User object
+    HeaderOverrides:
+      type: "object"
+      properties:
+        from:
+          type: "string"
+        sender:
+          type: "string"
+        replyTo:
+          type: "array"
+          items:
+            type: "string"
+        noReplyTo:
+          type: boolean
+    LocalizedTemplate:
+      type: "object"
+      properties:
+        lang:
+          type: "string"
+        subject:
+          type: "string"
+        templateDef:
+          type: "string"
+    SurveyItemResponse:
+      type: "object"
+      properties:
+        key:
+          type: "string"
+        meta:
+          "$ref": "#/components/schemas/ResponseMeta"
+        items:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/SurveyItemResponse"
+        response:
+          anyOf:
+          - "$ref": "#/components/schemas/ResponseItem"
+          - type: "null"
+        confidentialMode:
+          type: "string"
+        mapToKey:
+          type: "string"
+    ResponseMeta:
+      type: "object"
+      properties:
+        position:
+          type: "integer"
+        localeCode:
+          type: "string"
+        rendered:
+          type: "array"
+          items:
+            type: "integer"
+        displayed:
+          type: "array"
+          items:
+            type: "integer"
+        responded:
+          type: "array"
+          items:
+            type: "integer"
+    ResponseItem:
+      type: "object"
+      properties:
+        key:
+          type: "string"
+        value:
+          type: "string"
+        dtype:
+          type: "string"
+        items:
+          type: "array"
+          items:
+            anyOf:
+            - "$ref": "#/components/schemas/ResponseItem"
+            - type: "null"
+    Expression:
+      type: "object"
+      properties:
+        name:
+          type: "string"
+        returnType:
+          type: "string"
+        data:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/ExpressionArg"
+        metadata:
+          type: ["object", "null"]
+          properties:
+            slotTypes:
+              type: "array"
+              items:
+                type: ["string", "null"]
+    ExpressionArg:
+      type: "object"
+      properties:
+        dtype:
+          type: "string"
+        exp:
+          anyOf:
+          - "$ref": "#/components/schemas/Expression"
+          - type: "null"
+        str:
+          type: "string"
+        num:
+          type: "number"
+    LocalisedObject:
+      type: "object"
+      properties:
+        code:
+          type: "string"
+        parts:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/ExpressionArg"
+    Tag:
+      type: "object"
+      properties:
+        label:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+    SurveyProps:
+      type: "object"
+      properties:
+        name:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+        description:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+        typicalDuration:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+    SurveyContextDef:
+      type: "object"
+      properties:
+        mode:
+          anyOf:
+          - "$ref": "#/components/schemas/ExpressionArg"
+          - type: "null"
+        previousResponses:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Expression"
+    MaxItemsPerPage:
+      type: "object"
+      properties:
+        large:
+          type: "integer"
+        small:
+          type: "integer"
+    SurveyItem:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        key:
+          type: "string"
+        follows:
+          type: "array"
+          items:
+            type: "string"
+        condition:
+          anyOf:
+          - "$ref": "#/components/schemas/Expression"
+          - type: "null"
+        priority:
+          type: "number"
+        metadata:
+          type: "object"
+          additionalProperties:
+            type: "string"
+        items:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/SurveyItem"
+        selectionMethod:
+          anyOf:
+          - "$ref": "#/components/schemas/Expression"
+          - type: "null"
+        type:
+          type: "string"
+        components:
+          anyOf:
+          - "$ref": "#/components/schemas/ItemComponent"
+          - type: "null"
+        validations:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Validation"
+        confidentialMode:
+          type: "string"
+        mapToKey:
+          type: "string"
+    Validation:
+      type: "object"
+      properties:
+        key:
+          type: "string"
+        type:
+          type: "string"
+        rule:
+          "$ref": "#/components/schemas/Expression"
+    ItemComponent:
+      type: "object"
+      properties:
+        role:
+          type: "string"
+        key:
+          type: "string"
+        content:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+        displayCondition:
+          anyOf:
+          - "$ref": "#/components/schemas/Expression"
+          - type: "null"
+        disabled:
+          anyOf:
+          - "$ref": "#/components/schemas/Expression"
+          - type: "null"
+        items:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/ItemComponent"
+        order:
+          anyOf:
+          - "$ref": "#/components/schemas/Expression"
+          - type: "null"
+        dtype:
+          type: "string"
+        properties:
+          anyOf:
+          - "$ref": "#/components/schemas/ComponentProperties"
+          - type: "null"
+        style:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Style"
+        description:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+    Style:
+      type: "object"
+      properties:
+        key:
+          type: "string"
+        value:
+          type: "string"
+    ComponentProperties:
+      type: "object"
+      properties:
+        min:
+          anyOf:
+          - "$ref": "#/components/schemas/ExpressionArg"
+          - type: "null"
+        max:
+          anyOf:
+          - "$ref": "#/components/schemas/ExpressionArg"
+          - type: "null"
+        stepSize:
+          anyOf:
+          - "$ref": "#/components/schemas/ExpressionArg"
+          - type: "null"
+        dateInputMode:
+          anyOf:
+          - "$ref": "#/components/schemas/ExpressionArg"
+          - type: "null"
+        pattern:
+          type: "string"
 paths:
   "/":
     get:
       operationId: healthCheck
+      tags:
+      - health
       summary: Check management API health
       description: Returns service status and available service metadata.
       security: []
@@ -846,12 +1121,12 @@ paths:
                 email:
                   type: string
                   format: email
-                imageURL:
+                imageUrl:
                   type: string
                 renewToken:
                   type: string
                   description: Token used to renew the session
-                instanceID:
+                instanceId:
                   type: string
               required:
               - sub
@@ -2286,18 +2561,15 @@ paths:
                 name:
                   type: array
                   items:
-                    type: object
-                    additionalProperties: true
+                    "$ref": "#/components/schemas/LocalisedObject"
                 description:
                   type: array
                   items:
-                    type: object
-                    additionalProperties: true
+                    "$ref": "#/components/schemas/LocalisedObject"
                 tags:
                   type: array
                   items:
-                    type: object
-                    additionalProperties: true
+                    "$ref": "#/components/schemas/Tag"
               additionalProperties: false
       responses:
         '200':
@@ -2338,8 +2610,7 @@ paths:
                 simplifiedAllowedUpload:
                   type: boolean
                 expression:
-                  type: object
-                  additionalProperties: true
+                  "$ref": "#/components/schemas/Expression"
       responses:
         '200':
           description: Updated
@@ -3667,8 +3938,7 @@ paths:
                 rules:
                   type: array
                   items:
-                    type: object
-                    additionalProperties: true
+                    "$ref": "#/components/schemas/Expression"
               required:
               - rules
               additionalProperties: false
@@ -3724,8 +3994,7 @@ paths:
                 rules:
                   type: array
                   items:
-                    type: object
-                    additionalProperties: true
+                    "$ref": "#/components/schemas/Expression"
               required:
               - rules
               additionalProperties: false
@@ -3884,8 +4153,7 @@ paths:
                 rules:
                   type: array
                   items:
-                    type: object
-                    additionalProperties: true
+                    "$ref": "#/components/schemas/Expression"
       responses:
         '200':
           description: Task started
@@ -3946,8 +4214,7 @@ paths:
                 rules:
                   type: array
                   items:
-                    type: object
-                    additionalProperties: true
+                    "$ref": "#/components/schemas/Expression"
       responses:
         '200':
           description: Task started
