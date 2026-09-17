@@ -32,7 +32,7 @@ paths:
       summary: Send an email
       operationId: sendEmail
       security:
-      - BearerAuth: []
+      - ApiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -62,7 +62,7 @@ paths:
                     noReplyTo: false
       responses:
         '200':
-          description: Email accepted for sending
+          description: SMTP sending completed successfully. The handler waits for the SMTP send operation to finish before responding.
           content:
             application/json:
               schema:
@@ -72,7 +72,7 @@ paths:
                   value:
                     message: email sent
         '400':
-          description: Bad request
+          description: Missing or invalid API key, missing request payload, invalid JSON or field types, or an empty recipient list.
           content:
             application/json:
               schema:
@@ -84,6 +84,9 @@ paths:
                 missingTo:
                   value:
                     error: missing 'to' field
+                missingPayload:
+                  value:
+                    error: payload missing
         '500':
           description: Failed to send after retries
           content:
@@ -96,10 +99,11 @@ paths:
                     error: failed to send email
 components:
   securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Api-Key
+      description: A configured SMTP bridge API key.
   schemas:
     HealthStatus:
       type: object
@@ -130,16 +134,21 @@ components:
       properties:
         from:
           type: string
+          description: Overrides the configured From header when nonempty.
         sender:
           type: string
+          description: Overrides the configured Sender header when nonempty.
         replyTo:
           type: array
+          description: Overrides the configured Reply-To addresses when nonempty and noReplyTo is false.
           items:
             type: string
             format: email
         noReplyTo:
           type: boolean
-      additionalProperties: false
+          default: false
+          description: Clears the Reply-To addresses when true, taking precedence over replyTo and the configured defaults.
+      additionalProperties: true
     SendEmailRequest:
       type: object
       properties:
@@ -153,10 +162,16 @@ components:
           type: string
         content:
           type: string
+          description: HTML email body.
         highPrio:
           type: boolean
+          default: false
+          description: Uses the high-priority SMTP client pool when true; otherwise uses the low-priority pool.
         headerOverrides:
-          "$ref": "#/components/schemas/HeaderOverrides"
+          description: Optional email header overrides. When omitted or null, the configured defaults are used.
+          anyOf:
+          - "$ref": "#/components/schemas/HeaderOverrides"
+          - type: 'null'
       required:
       - to
-      additionalProperties: false
+      additionalProperties: true
