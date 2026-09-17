@@ -202,6 +202,48 @@ components:
         phone:
           type: string
       additionalProperties: false
+    StudyProps:
+      type: object
+      properties:
+        name:
+          type: array
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+        description:
+          type: array
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+        tags:
+          type: array
+          items:
+            "$ref": "#/components/schemas/Tag"
+        startDate:
+          type: integer
+        endDate:
+          type: integer
+        systemDefaultStudy:
+          type: boolean
+      additionalProperties: false
+    StudyConfigs:
+      type: object
+      properties:
+        participantFileUploadRule:
+          "$ref": "#/components/schemas/Expression"
+        idMappingMethod:
+          type: string
+        trackAccount:
+          type: boolean
+      additionalProperties: false
+    StudyStats:
+      type: object
+      properties:
+        participantCount:
+          type: integer
+        tempParticipantCount:
+          type: integer
+        responseCount:
+          type: integer
+      additionalProperties: false
     Study:
       type: object
       properties:
@@ -216,19 +258,15 @@ components:
         status:
           type: string
         props:
-          type: object
-          additionalProperties: true
+          "$ref": "#/components/schemas/StudyProps"
         configs:
-          type: object
-          additionalProperties: true
+          "$ref": "#/components/schemas/StudyConfigs"
         notificationSubscriptions:
           type: array
           items:
-            type: object
-            additionalProperties: true
+            "$ref": "#/components/schemas/NotificationSubscription"
         stats:
-          type: object
-          additionalProperties: true
+          "$ref": "#/components/schemas/StudyStats"
         nextTimerEvent:
           type: integer
         rules:
@@ -392,7 +430,7 @@ components:
       properties:
         id:
           type: string
-        serviceUserID:
+        serviceUserId:
           type: string
         key:
           type: string
@@ -430,6 +468,54 @@ components:
       type: object
       properties:
         key:
+          type: string
+    SurveyVersionPreview:
+      type: object
+      properties:
+        versionId:
+          type: string
+        published:
+          type: integer
+        unpublished:
+          type: integer
+        questions:
+          type: array
+          items:
+            "$ref": "#/components/schemas/SurveyQuestion"
+    SurveyQuestion:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        questionType:
+          type: string
+        responses:
+          type: array
+          items:
+            "$ref": "#/components/schemas/ResponseDef"
+    ResponseDef:
+      type: object
+      properties:
+        id:
+          type: string
+        responseType:
+          type: string
+        label:
+          type: string
+        options:
+          type: array
+          items:
+            "$ref": "#/components/schemas/ResponseOption"
+    ResponseOption:
+      type: object
+      properties:
+        id:
+          type: string
+        optionType:
+          type: string
+        label:
           type: string
     StudyCounter:
       type: object
@@ -702,8 +788,7 @@ components:
         messages:
           type: array
           items:
-            type: object
-            additionalProperties: true
+            "$ref": "#/components/schemas/ParticipantMessage"
         hashedAccountID:
           type: string
           description: Optional hashed account identifier used for account tracking.
@@ -732,6 +817,16 @@ components:
       required:
       - studyKey
       - surveyKey
+      additionalProperties: false
+    ParticipantMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        scheduledFor:
+          type: integer
       additionalProperties: false
     SurveyResponse:
       type: object
@@ -762,6 +857,23 @@ components:
             type: string
       required:
       - key
+      additionalProperties: false
+    ConfidentialResponsesExportEntry:
+      type: object
+      properties:
+        participantID:
+          type: string
+        entryID:
+          type: string
+        responseKey:
+          type: string
+        value:
+          type: string
+      required:
+      - participantID
+      - entryID
+      - responseKey
+      - value
       additionalProperties: false
     ManagementUser:
       type: object
@@ -4382,8 +4494,17 @@ paths:
           content:
             application/json:
               schema:
-                type: string
-                format: binary
+                type: object
+                properties:
+                  key:
+                    type: string
+                  versions:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/SurveyVersionPreview"
+                required:
+                - key
+                - versions
             text/csv:
               schema:
                 type: string
@@ -5147,8 +5268,7 @@ paths:
                   responses:
                     type: array
                     items:
-                      type: object
-                      additionalProperties: true
+                      "$ref": "#/components/schemas/ConfidentialResponsesExportEntry"
                     description: Confidential survey response export entry
                 required:
                 - responses
@@ -5336,6 +5456,26 @@ paths:
                     items:
                       type: object
                       description: Responses
+                      properties:
+                        ID:
+                          type: string
+                        participantID:
+                          type: string
+                        version:
+                          type: string
+                        opened:
+                          type: integer
+                        submitted:
+                          type: integer
+                        arrived:
+                          type: integer
+                        accountID:
+                          type: string
+                        mainProfile:
+                          oneOf:
+                          - type: boolean
+                          - type: string
+                            enum: [""]
                       additionalProperties: true
                   pagination:
                     "$ref": "#/components/schemas/PaginationInfos"
@@ -5442,6 +5582,26 @@ paths:
                   response:
                     type: object
                     description: Response
+                    properties:
+                      ID:
+                        type: string
+                      participantID:
+                        type: string
+                      version:
+                        type: string
+                      opened:
+                        type: integer
+                      submitted:
+                        type: integer
+                      arrived:
+                        type: integer
+                      accountID:
+                        type: string
+                      mainProfile:
+                        oneOf:
+                        - type: boolean
+                        - type: string
+                          enum: [""]
                     additionalProperties: true
                 required:
                 - response
