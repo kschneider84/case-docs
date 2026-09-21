@@ -981,9 +981,7 @@ paths:
                 profileID:
                   type: string
                 response:
-                  type: object
-                  description: SurveyResponse
-                  additionalProperties: true
+                  "$ref": "#/components/schemas/SurveyResponse"
               required:
               - profileID
               - response
@@ -1717,8 +1715,7 @@ paths:
                 pid:
                   type: string
                 response:
-                  type: object
-                  additionalProperties: true
+                  "$ref": "#/components/schemas/SurveyResponse"
               required:
               - instanceId
               - studyKey
@@ -2049,8 +2046,9 @@ paths:
               type: object
               properties:
                 exitSurveyResponse:
-                  type: [object, "null"]
-                  additionalProperties: true
+                  anyOf:
+                  - "$ref": "#/components/schemas/SurveyResponse"
+                  - type: "null"
       responses:
         '200':
           "$ref": "#/components/responses/MessageOk"
@@ -2171,8 +2169,9 @@ paths:
                 profileId:
                   type: string
                 exitSurveyResponse:
-                  type: [object, "null"]
-                  additionalProperties: true
+                  anyOf:
+                  - "$ref": "#/components/schemas/SurveyResponse"
+                  - type: "null"
               required:
               - profileId
       responses:
@@ -2698,6 +2697,115 @@ components:
     Profile:
       type: object
       description: User profile object
+      properties:
+        id:
+          type: string
+          description: MongoDB ObjectID as a hex string. Generated on creation; identifies the existing profile on update.
+        alias:
+          type: string
+        consentConfirmedAt:
+          type: integer
+          format: int64
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp in seconds; generated on creation.
+        avatarID:
+          type: string
+        mainProfile:
+          type: boolean
+          description: Whether this is the main profile. Updates preserve the existing value.
+      additionalProperties: true
+    SurveyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: MongoDB ObjectID as a hex string.
+        key:
+          type: string
+        participantId:
+          type: string
+        versionId:
+          type: string
+        openedAt:
+          type: integer
+          format: int64
+        submittedAt:
+          type: integer
+          format: int64
+        arrivedAt:
+          type: integer
+          format: int64
+        responses:
+          type: [array, "null"]
+          items:
+            "$ref": "#/components/schemas/SurveyItemResponse"
+        context:
+          type: [object, "null"]
+          additionalProperties:
+            type: string
+      additionalProperties: true
+    SurveyItemResponse:
+      type: object
+      properties:
+        key:
+          type: string
+        meta:
+          "$ref": "#/components/schemas/ResponseMeta"
+        items:
+          type: [array, "null"]
+          items:
+            "$ref": "#/components/schemas/SurveyItemResponse"
+        response:
+          anyOf:
+          - "$ref": "#/components/schemas/ResponseItem"
+          - type: "null"
+        confidentialMode:
+          type: string
+        mapToKey:
+          type: string
+          description: Target key used for confidential responses.
+      additionalProperties: true
+    ResponseMeta:
+      type: object
+      properties:
+        position:
+          type: integer
+          format: int32
+        localeCode:
+          type: string
+        rendered:
+          type: [array, "null"]
+          items:
+            type: integer
+            format: int64
+        displayed:
+          type: [array, "null"]
+          items:
+            type: integer
+            format: int64
+        responded:
+          type: [array, "null"]
+          items:
+            type: integer
+            format: int64
+      additionalProperties: true
+    ResponseItem:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+        dtype:
+          type: string
+        items:
+          type: [array, "null"]
+          items:
+            anyOf:
+            - "$ref": "#/components/schemas/ResponseItem"
+            - type: "null"
       additionalProperties: true
     UserAttributes:
       type: object
