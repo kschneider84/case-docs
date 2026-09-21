@@ -1329,13 +1329,14 @@ paths:
           type: string
       - name: pid
         in: query
-        required: false
-        description: Profile ID
+        required: true
+        description: ID of a profile belonging to the authenticated user.
         schema:
           type: string
       - name: surveyKey
         in: query
         required: false
+        description: Survey key to filter responses. If omitted, the backend filters on an empty survey key; it does not return responses across all surveys.
         schema:
           type: string
       - name: page
