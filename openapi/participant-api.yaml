@@ -3,8 +3,11 @@ openapi: 3.1.0
 info:
   title: Participant API
   version: 1.0.0
-  description: Endpoints for participant authentication, user management, and study
-    interactions.
+  description: >-
+    Endpoints for participant authentication, user management, and study interactions.
+    Depending on deployment configuration, routes may additionally require a recent
+    email or SMS OTP verified through /v1/auth/otp/verify. Missing or expired OTP
+    verification returns 401 with an error message (missing OTP or invalid OTP).
 paths:
   "/":
     get:
@@ -47,7 +50,7 @@ paths:
               - email
               - password
               - instanceId
-              additionalProperties: false
+              additionalProperties: true
       responses:
         '200':
           description: Access and refresh tokens with user
@@ -94,7 +97,7 @@ paths:
                 preferredLanguage:
                   type: string
                 withAttributes:
-                  type: object
+                  type: [object, "null"]
                   properties:
                     type:
                       type: string
@@ -105,7 +108,7 @@ paths:
               - email
               - password
               - instanceId
-              additionalProperties: false
+              additionalProperties: true
       responses:
         '200':
           description: Access and refresh tokens with user
@@ -150,7 +153,7 @@ paths:
                   type: string
               required:
               - tempToken
-              additionalProperties: false
+              additionalProperties: true
               description: Provide either accessToken or password along with tempToken.
       responses:
         '200':
@@ -193,7 +196,7 @@ paths:
               required:
               - instanceId
               - tempToken
-              additionalProperties: false
+              additionalProperties: true
       responses:
         '200':
           description: Info returned
@@ -234,7 +237,7 @@ paths:
                   type: string
               required:
               - refreshToken
-              additionalProperties: false
+              additionalProperties: true
       responses:
         '200':
           description: Access and refresh tokens with user
@@ -264,6 +267,16 @@ paths:
       security:
       - BearerAuth: []
       operationId: validateToken
+      description: >-
+        The backend requires a nonempty request payload even for this GET operation.
+        A body such as {} is sufficient; its contents are not interpreted.
+        A request with Content-Length 0 returns 400 with error payload missing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {}
+            example: {}
       responses:
         '200':
           description: Token valid
@@ -442,7 +455,7 @@ paths:
                   type: string
               required:
               - code
-              additionalProperties: false
+              additionalProperties: true
       responses:
         '200':
           description: Access and refresh tokens with user
@@ -485,7 +498,7 @@ paths:
               required:
               - email
               - instanceID
-              additionalProperties: false
+              additionalProperties: true
       responses:
         '200':
           "$ref": "#/components/responses/MessageOk"
@@ -550,7 +563,7 @@ paths:
               required:
               - token
               - newPassword
-              additionalProperties: false
+              additionalProperties: true
       responses:
         '200':
           "$ref": "#/components/responses/MessageOk"
@@ -1121,7 +1134,7 @@ paths:
               - virtualParticipantID
               - linkingCodeKey
               - linkingCodeValue
-              additionalProperties: false
+              additionalProperties: true
       responses:
         '200':
           description: Assigned surveys of merged participant returned
@@ -1341,18 +1354,20 @@ paths:
           default: 10
       - name: filter
         in: query
-        description: bson.M object to filter responses
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: JSON-encoded object to filter responses; URL-encode the query value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       - name: sort
         in: query
-        description: bson.M object to sort responses
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: JSON-encoded object to sort responses; URL-encode the query value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       - name: shortKeys
         in: query
         description: whether to return short keys for responses
@@ -1367,14 +1382,10 @@ paths:
           default: "-"
       - name: format
         in: query
-        description: format for survey responses
+        description: Parsed but ignored by this endpoint; responses are always flattened JSON objects.
         schema:
           type: string
           default: wide
-          enum:
-          - wide
-          - long
-          - json
       - name: extraContextColumns
         in: query
         description: comma-separated list of extra context columns to include in the
@@ -1393,9 +1404,8 @@ paths:
                     type: array
                     items:
                       type: object
-                      description: Responses
-                      additionalProperties:
-                        type: object
+                      description: Flattened survey response with dynamically named columns and scalar or structured values.
+                      additionalProperties: true
                   pagination:
                     "$ref": "#/components/schemas/PaginationInfos"
                 required:
@@ -1478,7 +1488,7 @@ paths:
       - name: limit
         in: query
         required: false
-        description: Maximum number of submissions per page
+        description: Maximum number of submissions fetched per profile; this endpoint does not paginate the combined result.
         schema:
           type: integer
           default: 100
@@ -1537,11 +1547,12 @@ paths:
           default: 10
       - name: filter
         in: query
-        description: bson.M object to filter reports
-        schema:
-          type: object
-          additionalProperties:
-            type: object
+        description: JSON-encoded object to filter reports; URL-encode the query value.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       responses:
         '200':
           description: Reports returned
@@ -1805,8 +1816,7 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: File to upload. Only 'image/jpeg' and 'image/png' are
-                    allowed.
+                  description: File to upload. Only 'image/jpeg' and 'image/png' are allowed. Maximum size is 20 MiB (20971520 bytes).
               required:
               - profileID
               - file
@@ -1818,18 +1828,24 @@ paths:
               schema:
                 type: object
                 properties:
-                  id:
-                    type: string
-                    description: object ID of the uploaded file
-                  path:
-                    type: string
-                  status:
-                    type: string
-                    const: ready
+                  fileInfo:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        description: Object ID of the uploaded file
+                      path:
+                        type: string
+                      status:
+                        type: string
+                        const: ready
+                    required:
+                    - id
+                    - path
+                    - status
+                    additionalProperties: false
                 required:
-                - id
-                - path
-                - status
+                - fileInfo
                 additionalProperties: false
         '400':
           "$ref": "#/components/responses/Error400"
@@ -1923,8 +1939,22 @@ paths:
           type: string
       responses:
         '200':
-          description: File
+          description: File returned as an attachment with its content type.
+          headers:
+            Content-Disposition:
+              description: Attachment disposition including the filename.
+              schema:
+                type: string
+              example: attachment; filename=example.png
           content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
             application/octet-stream:
               schema:
                 type: string
@@ -2010,14 +2040,15 @@ paths:
       - BearerAuth: []
       operationId: deleteUser
       requestBody:
-        required: false
+        description: A JSON body is required; an empty object is sufficient when no exit survey response is supplied.
+        required: true
         content:
           application/json:
             schema:
               type: object
               properties:
                 exitSurveyResponse:
-                  type: object
+                  type: [object, "null"]
                   additionalProperties: true
       responses:
         '200':
@@ -2048,7 +2079,7 @@ paths:
                   description: language code, e.g., en, de-DE
               required:
               - newLocale
-              additionalProperties: false
+              additionalProperties: true
       responses:
         '200':
           "$ref": "#/components/responses/MessageOk"
@@ -2071,12 +2102,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                profile:
-                  "$ref": "#/components/schemas/Profile"
-              required:
-              - profile
+              "$ref": "#/components/schemas/Profile"
       responses:
         '200':
           description: Profile added
@@ -2107,12 +2133,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                profile:
-                  "$ref": "#/components/schemas/Profile"
-              required:
-              - profile
+              "$ref": "#/components/schemas/Profile"
       responses:
         '200':
           description: Profile updated
@@ -2149,7 +2170,7 @@ paths:
                 profileId:
                   type: string
                 exitSurveyResponse:
-                  type: object
+                  type: [object, "null"]
                   additionalProperties: true
               required:
               - profileId
@@ -2326,7 +2347,6 @@ paths:
                   additionalProperties: true
               required:
               - type
-              - attributes
       responses:
         '200':
           "$ref": "#/components/responses/MessageOk"
@@ -2377,11 +2397,12 @@ paths:
               properties:
                 subscribedToNewsletter:
                   type: boolean
+                  default: false
+                  description: Sets the newsletter subscription; omission sets it to false.
                 toggleWeeklySubscription:
                   type: boolean
-              required:
-              - subscribedToNewsletter
-              - toggleWeeklySubscription
+                  default: false
+                  description: Toggles the current weekly subscription when true; otherwise leaves it unchanged.
       responses:
         '200':
           "$ref": "#/components/responses/MessageOk"
@@ -2518,7 +2539,8 @@ components:
         selectedProfile:
           type: string
         lastOTP:
-          type: object
+          description: OTP verification timestamps by type; null when the renewed token has no OTP history.
+          type: [object, "null"]
           additionalProperties:
             type: integer
       required:
@@ -2727,7 +2749,7 @@ components:
           type: string
         value:
           description: Value of the study variable, type depends on 'type'
-          oneOf:
+          anyOf:
           - type: string
           - type: integer
           - type: number
