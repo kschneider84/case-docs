@@ -286,9 +286,7 @@ paths:
                 type: object
                 properties:
                   tokenInfos:
-                    type: object
-                    description: Decoded participant user JWT claims
-                    additionalProperties: true
+                    "$ref": "#/components/schemas/ParticipantUserClaims"
                 required:
                 - tokenInfos
         '400':
@@ -599,23 +597,7 @@ paths:
                   studies:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        key:
-                          type: string
-                        status:
-                          type: string
-                        props:
-                          type: object
-                          additionalProperties: true
-                        stats:
-                          type: object
-                          additionalProperties: true
-                      required:
-                      - key
-                      - status
-                      - props
-                      - stats
+                      "$ref": "#/components/schemas/StudyInfo"
                 required:
                 - studies
         '401':
@@ -648,23 +630,7 @@ paths:
                 type: object
                 properties:
                   study:
-                    type: object
-                    properties:
-                      key:
-                        type: string
-                      status:
-                        type: string
-                      props:
-                        type: object
-                        additionalProperties: true
-                      stats:
-                        type: object
-                        additionalProperties: true
-                    required:
-                    - key
-                    - status
-                    - props
-                    - stats
+                    "$ref": "#/components/schemas/StudyInfo"
         '400':
           "$ref": "#/components/responses/Error400"
         '401':
@@ -1402,9 +1368,9 @@ paths:
                   responses:
                     type: array
                     items:
-                      type: object
-                      description: Flattened survey response with dynamically named columns and scalar or structured values.
-                      additionalProperties: true
+                      anyOf:
+                      - "$ref": "#/components/schemas/FlattenedSurveyResponse"
+                      - type: "null"
                   pagination:
                     "$ref": "#/components/schemas/PaginationInfos"
                 required:
@@ -1453,9 +1419,7 @@ paths:
                   confidentialResponse:
                     type: array
                     items:
-                      type: object
-                      description: Confidential survey response export entry
-                      additionalProperties: true
+                      "$ref": "#/components/schemas/ConfidentialResponsesExportEntry"
                 required:
                 - confidentialResponse
         '400':
@@ -2551,44 +2515,48 @@ components:
       - lastOTP
       additionalProperties: false
     AssignedSurvey:
-      type: object
-      description: Assigned survey object
-      additionalProperties: true
+      type: "object"
+      properties:
+        studyKey:
+          type: "string"
+        surveyKey:
+          type: "string"
+        validFrom:
+          type: "integer"
+        validUntil:
+          type: "integer"
+        category:
+          type: "string"
+        profileID:
+          type: "string"
     AssignedSurveysWithInfos:
-      type: object
-      description: Assigned surveys object with survey infos
+      type: "object"
       properties:
         surveys:
-          type: array
+          type: ["array","null"]
           items:
-            type: object
-            additionalProperties: true
+            "$ref": "#/components/schemas/AssignedSurvey"
         surveyInfos:
-          type: array
+          type: ["array","null"]
           items:
-            type: object
-            additionalProperties: true
-      required:
-      - surveys
-      - surveyInfos
-      additionalProperties: false
+            anyOf:
+            - {"$ref":"#/components/schemas/SurveyInfo"}
+            - {"type":"null"}
     AssignedSurveyWithContext:
-      type: object
-      description: Assigned survey object with optional context and prefill survey
-        response
+      type: "object"
       properties:
         survey:
-          type: object
-          additionalProperties: true
+          anyOf:
+          - {"$ref":"#/components/schemas/Survey"}
+          - {"type":"null"}
         context:
-          type: object
-          additionalProperties: true
+          anyOf:
+          - {"$ref":"#/components/schemas/SurveyContext"}
+          - {"type":"null"}
         prefill:
-          type: object
-          additionalProperties: true
-      required:
-      - survey
-      additionalProperties: false
+          anyOf:
+          - {"$ref":"#/components/schemas/SurveyResponse"}
+          - {"type":"null"}
     FileInfo:
       type: object
       properties:
@@ -2639,9 +2607,18 @@ components:
           type: integer
       additionalProperties: false
     SubmissionHistory:
-      type: object
-      description: Submission history
-      additionalProperties: true
+      type: "object"
+      properties:
+        submissions:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/SubmissionEntry"
+        surveyInfos:
+          type: ["array","null"]
+          items:
+            anyOf:
+            - {"$ref":"#/components/schemas/SurveyInfo"}
+            - {"type":"null"}
     Report:
       type: object
       description: Report object
@@ -2686,14 +2663,68 @@ components:
       - timestamp
       additionalProperties: false
     Participant:
-      type: object
-      description: Participant defines the datamodel for current state of the participant
-        in a study as stored in the database
-      additionalProperties: true
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        participantId:
+          type: "string"
+        currentStudySession:
+          type: "string"
+        modifiedAt:
+          type: "integer"
+        enteredAt:
+          type: "integer"
+        studyStatus:
+          type: "string"
+        flags:
+          type: ["object","null"]
+          additionalProperties:
+            type: "string"
+        linkingCodes:
+          type: ["object","null"]
+          additionalProperties:
+            type: "string"
+          description: "Linking codes by key. The participant-state endpoint clears this field and returns null."
+        assignedSurveys:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/AssignedSurvey"
+        lastSubmissions:
+          type: ["object","null"]
+          additionalProperties:
+            type: "integer"
+        messages:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/ParticipantMessage"
+        hashedAccountID:
+          anyOf:
+          - {"type":"string"}
+          - {"type":"null"}
+        isMainProfile:
+          anyOf:
+          - {"type":"boolean"}
+          - {"type":"null"}
     User:
-      type: object
-      description: User object
-      additionalProperties: true
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        account:
+          "$ref": "#/components/schemas/Account"
+        timestamps:
+          "$ref": "#/components/schemas/Timestamps"
+        profiles:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/Profile"
+        contactPreferences:
+          "$ref": "#/components/schemas/ContactPreferences"
+        contactInfos:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/ContactInfo"
     Profile:
       type: object
       description: User profile object
@@ -2808,9 +2839,20 @@ components:
             - type: "null"
       additionalProperties: true
     UserAttributes:
-      type: object
-      description: User attributes object
-      additionalProperties: true
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        userId:
+          type: "string"
+        type:
+          type: "string"
+        attributes:
+          type: ["object","null"]
+          additionalProperties: {}
+        createdAt:
+          type: "string"
+          format: "date-time"
     StudyInfo:
       type: object
       properties:
@@ -2819,16 +2861,14 @@ components:
         status:
           type: string
         props:
-          type: object
-          additionalProperties: true
+          "$ref": "#/components/schemas/StudyProps"
         stats:
-          type: object
-          additionalProperties: true
+          "$ref": "#/components/schemas/StudyStats"
         profileIds:
-          type: array
+          type: [array, "null"]
           items:
             type: string
-          description: ProfileIDs only required in study info objects related to participants
+          description: Profile IDs for participating studies; null in public study list and detail responses.
       required:
       - key
       - status
@@ -2893,6 +2933,494 @@ components:
       - key
       - value
       - type
+    SurveyInfo:
+      type: "object"
+      properties:
+        surveyKey:
+          type: "string"
+        studyKey:
+          type: "string"
+        name:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+        description:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+        typicalDuration:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+        versionID:
+          type: "string"
+    LocalisedObject:
+      type: "object"
+      properties:
+        code:
+          type: "string"
+        parts:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/ExpressionArg"
+    ExpressionArg:
+      type: "object"
+      properties:
+        dtype:
+          type: "string"
+        exp:
+          anyOf:
+          - {"$ref":"#/components/schemas/Expression"}
+          - {"type":"null"}
+        str:
+          type: "string"
+        num:
+          type: "number"
+    Expression:
+      type: "object"
+      properties:
+        name:
+          type: "string"
+        returnType:
+          type: "string"
+        data:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/ExpressionArg"
+        metadata:
+          type: [object, "null"]
+          properties:
+            slotTypes:
+              type: [array, "null"]
+              items:
+                type: [string, "null"]
+    Survey:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        surveyKey:
+          type: "string"
+        props:
+          "$ref": "#/components/schemas/SurveyProps"
+        maxItemsPerPage:
+          anyOf:
+          - {"$ref":"#/components/schemas/MaxItemsPerPage"}
+          - {"type":"null"}
+        availableFor:
+          type: "string"
+        requireLoginBeforeSubmission:
+          type: "boolean"
+        published:
+          type: "integer"
+        unpublished:
+          type: "integer"
+        surveyDefinition:
+          "$ref": "#/components/schemas/SurveyItem"
+        versionId:
+          type: "string"
+        metadata:
+          type: ["object","null"]
+          additionalProperties:
+            type: "string"
+    SurveyProps:
+      type: "object"
+      properties:
+        name:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+        description:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+        typicalDuration:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+    MaxItemsPerPage:
+      type: "object"
+      properties:
+        large:
+          type: "integer"
+        small:
+          type: "integer"
+    SurveyItem:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        key:
+          type: "string"
+        follows:
+          type: ["array","null"]
+          items:
+            type: "string"
+        condition:
+          anyOf:
+          - {"$ref":"#/components/schemas/Expression"}
+          - {"type":"null"}
+        priority:
+          type: "number"
+        metadata:
+          type: ["object","null"]
+          additionalProperties:
+            type: "string"
+        items:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/SurveyItem"
+        selectionMethod:
+          anyOf:
+          - {"$ref":"#/components/schemas/Expression"}
+          - {"type":"null"}
+        type:
+          type: "string"
+        components:
+          anyOf:
+          - {"$ref":"#/components/schemas/ItemComponent"}
+          - {"type":"null"}
+        validations:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/Validation"
+        confidentialMode:
+          type: "string"
+        mapToKey:
+          type: "string"
+    ItemComponent:
+      type: "object"
+      properties:
+        role:
+          type: "string"
+        key:
+          type: "string"
+        content:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+        displayCondition:
+          anyOf:
+          - {"$ref":"#/components/schemas/Expression"}
+          - {"type":"null"}
+        disabled:
+          anyOf:
+          - {"$ref":"#/components/schemas/Expression"}
+          - {"type":"null"}
+        items:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/ItemComponent"
+        order:
+          anyOf:
+          - {"$ref":"#/components/schemas/Expression"}
+          - {"type":"null"}
+        dtype:
+          type: "string"
+        properties:
+          anyOf:
+          - {"$ref":"#/components/schemas/ComponentProperties"}
+          - {"type":"null"}
+        style:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/Style"
+        description:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+    ComponentProperties:
+      type: "object"
+      properties:
+        min:
+          anyOf:
+          - {"$ref":"#/components/schemas/ExpressionArg"}
+          - {"type":"null"}
+        max:
+          anyOf:
+          - {"$ref":"#/components/schemas/ExpressionArg"}
+          - {"type":"null"}
+        stepSize:
+          anyOf:
+          - {"$ref":"#/components/schemas/ExpressionArg"}
+          - {"type":"null"}
+        dateInputMode:
+          anyOf:
+          - {"$ref":"#/components/schemas/ExpressionArg"}
+          - {"type":"null"}
+        pattern:
+          type: "string"
+    Style:
+      type: "object"
+      properties:
+        key:
+          type: "string"
+        value:
+          type: "string"
+    Validation:
+      type: "object"
+      properties:
+        key:
+          type: "string"
+        type:
+          type: "string"
+        rule:
+          "$ref": "#/components/schemas/Expression"
+    SurveyContext:
+      type: "object"
+      properties:
+        mode:
+          type: "string"
+        previousResponses:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/SurveyResponse"
+        participantFlags:
+          type: ["object","null"]
+          additionalProperties:
+            type: "string"
+        studyVariables:
+          type: ["object","null"]
+          additionalProperties:
+            "$ref": "#/components/schemas/StudyVariableValue"
+    StudyVariableValue:
+      type: "object"
+      properties:
+        type:
+          type: "string"
+        value: {}
+    SubmissionEntry:
+      type: "object"
+      properties:
+        profileID:
+          type: "string"
+        timestamp:
+          type: "integer"
+        surveyKey:
+          type: "string"
+        versionID:
+          type: "string"
+    ParticipantMessage:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        type:
+          type: "string"
+        scheduledFor:
+          type: "integer"
+    Account:
+      type: "object"
+      properties:
+        type:
+          type: "string"
+        accountID:
+          type: "string"
+        accountConfirmedAt:
+          type: "integer"
+        password:
+          type: "string"
+        authType:
+          type: "string"
+        verificationCode:
+          "$ref": "#/components/schemas/VerificationCode"
+        preferredLanguage:
+          type: "string"
+        failedLoginAttempts:
+          type: ["array","null"]
+          items:
+            type: "integer"
+        passwordResetTriggers:
+          type: ["array","null"]
+          items:
+            type: "integer"
+    VerificationCode:
+      type: "object"
+      properties:
+        code:
+          type: "string"
+        attempts:
+          type: "integer"
+        createdAt:
+          type: "integer"
+        expiresAt:
+          type: "integer"
+    Timestamps:
+      type: "object"
+      properties:
+        lastTokenRefresh:
+          type: "integer"
+        lastLogin:
+          type: "integer"
+        createdAt:
+          type: "integer"
+        updatedAt:
+          type: "integer"
+        lastPasswordChange:
+          type: "integer"
+        reminderToConfirmSentAt:
+          type: "integer"
+        markedForDeletion:
+          type: "integer"
+    ContactPreferences:
+      type: "object"
+      properties:
+        subscribedToNewsletter:
+          type: "boolean"
+        sendNewsletterTo:
+          type: ["array","null"]
+          items:
+            type: "string"
+        subscribedToWeekly:
+          type: "boolean"
+        receiveWeeklyMessageDayOfWeek:
+          type: "integer"
+    ContactInfo:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        type:
+          type: "string"
+        confirmedAt:
+          type: "integer"
+        confirmationLinkSentAt:
+          type: "integer"
+        email:
+          type: "string"
+        phone:
+          type: "string"
+    StudyProps:
+      type: "object"
+      properties:
+        name:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+        description:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+        tags:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/Tag"
+        startDate:
+          type: "integer"
+        endDate:
+          type: "integer"
+        systemDefaultStudy:
+          type: "boolean"
+    Tag:
+      type: "object"
+      properties:
+        label:
+          type: ["array","null"]
+          items:
+            "$ref": "#/components/schemas/LocalisedObject"
+    StudyStats:
+      type: "object"
+      properties:
+        participantCount:
+          type: "integer"
+        tempParticipantCount:
+          type: "integer"
+        responseCount:
+          type: "integer"
+    ParticipantUserClaims:
+      type: "object"
+      properties:
+        instance_id:
+          type: "string"
+        profile_id:
+          type: "string"
+        session_id:
+          type: "string"
+        payload:
+          type: ["object","null"]
+          additionalProperties:
+            type: "string"
+        accountConfirmed:
+          type: "boolean"
+        temptoken:
+          anyOf:
+          - {"$ref":"#/components/schemas/TempToken"}
+          - {"type":"null"}
+        other_profile_ids:
+          type: ["array","null"]
+          items:
+            type: "string"
+        last_otp_provided:
+          type: ["object","null"]
+          additionalProperties:
+            type: "integer"
+        iss:
+          type: "string"
+        sub:
+          type: "string"
+        jti:
+          type: "string"
+        aud:
+          anyOf:
+          - {"type":"string"}
+          - {"type":"array","items":{"type":"string"}}
+        exp:
+          type: "number"
+          description: "NumericDate: seconds since the Unix epoch."
+        nbf:
+          type: "number"
+          description: "NumericDate: seconds since the Unix epoch."
+        iat:
+          type: "number"
+          description: "NumericDate: seconds since the Unix epoch."
+    TempToken:
+      type: "object"
+      properties:
+        token_id:
+          type: "string"
+        token:
+          type: "string"
+        expiration:
+          type: "string"
+          format: "date-time"
+        purpose:
+          type: "string"
+        userID:
+          type: "string"
+        info:
+          type: ["object","null"]
+          additionalProperties:
+            type: "string"
+        instanceID:
+          type: "string"
+    ConfidentialResponsesExportEntry:
+      type: "object"
+      properties:
+        participantID:
+          type: "string"
+        entryID:
+          type: "string"
+        responseKey:
+          type: "string"
+        value:
+          type: "string"
+    FlattenedSurveyResponse:
+      type: "object"
+      properties:
+        ID:
+          type: "string"
+        participantID:
+          type: "string"
+        version:
+          type: "string"
+        opened:
+          type: "integer"
+        submitted:
+          type: "integer"
+        arrived:
+          type: "integer"
+      additionalProperties: true
+      description: "Fixed response identifiers and timestamps plus dynamic survey and context columns."
 tags:
 - name: auth
   description: Authentication endpoints
